@@ -5,11 +5,7 @@
 <title>ZeroDAYZ Job Portal</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <style>
-body {
-  margin:0; font-family:Arial,sans-serif;
-  background: url('https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=1350&q=80') no-repeat center center fixed;
-  background-size: cover;
-}
+body { margin:0; font-family:Arial,sans-serif; background: url('https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&w=1350&q=80') no-repeat center center fixed; background-size: cover; }
 header { background: rgba(76,175,80,0.85); color:white; text-align:center; padding:20px; font-size:30px; font-weight:bold; animation:fadeIn 2s;}
 .container { display:flex; flex-wrap:wrap; justify-content:center; padding:20px; gap:20px; }
 form { background: rgba(255,255,255,0.95); padding:20px; border-radius:15px; width:350px; box-shadow:0 4px 15px rgba(0,0,0,0.3); animation:slideIn 1s; }
@@ -28,16 +24,8 @@ button:hover{background:#45a049;}
 <header>ZeroDAYZ Job Portal</header>
 
 <div class="container">
-<!-- Admin Login -->
-<form id="loginForm">
-<h3>Admin Login</h3>
-<label>Username:</label><input type="text" id="username" required/>
-<label>Password:</label><input type="password" id="password" required/>
-<button type="submit">Login</button>
-</form>
-
 <!-- Admin Add Job -->
-<form id="vacancyForm" style="display:none;">
+<form id="vacancyForm">
 <h3>Add Job Vacancy</h3>
 <label>Title:</label><input type="text" id="title" required/>
 <label>Area/City:</label><input type="text" id="area" required/>
@@ -49,17 +37,8 @@ button:hover{background:#45a049;}
 <button type="submit">Add Job</button>
 </form>
 
-<!-- Applicant Login (Phone + OTP) -->
-<form id="appLoginForm">
-<h3>Applicant Login</h3>
-<label>Phone Number:</label><input type="text" id="appPhone" placeholder="+91XXXXXXXXXX" required/>
-<button type="button" id="sendOTP">Send OTP</button>
-<label>OTP:</label><input type="text" id="otpInput"/>
-<button type="button" id="verifyOTP">Verify OTP</button>
-</form>
-
 <!-- Applicant Form -->
-<form id="jobForm" style="display:none;">
+<form id="jobForm">
 <h3>Apply for a Job</h3>
 <label>Full Name:</label><input type="text" id="name"/>
 <label>Position:</label><select id="position"><option>Home Nurse</option><option>Support Worker</option><option>Care Assistant</option></select>
@@ -77,93 +56,81 @@ button:hover{background:#45a049;}
 <div id="map"></div>
 <div id="output"></div>
 
-<!-- Firebase SDK -->
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js";
-import { getAuth, RecaptchaVerifier, signInWithPhoneNumber } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-auth.js";
-
-// Firebase Config
-const firebaseConfig = {
-apiKey:"YOUR_API_KEY",
-authDomain:"your-app.firebaseapp.com",
-projectId:"your-app",
-storageBucket:"your-app.appspot.com",
-messagingSenderId:"1234567890",
-appId:"1:abcdefg:web:123456"
-};
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
-
-// Admin Login
-document.getElementById("loginForm").addEventListener("submit",async(e)=>{
-e.preventDefault();
-const username=document.getElementById("username").value;
-const password=document.getElementById("password").value;
-try{
-const res=await fetch("http://localhost:5000/admin/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({username,password})});
-const data=await res.json();
-if(data.success){alert("Admin Logged In");document.getElementById("vacancyForm").style.display="block";document.getElementById("loginForm").style.display="none";}
-else alert("Invalid credentials");
-}catch(err){console.error(err);}
-});
-
-// Add Job
-document.getElementById("vacancyForm").addEventListener("submit",async(e)=>{
-e.preventDefault();
-const title=document.getElementById("title").value;
-const area=document.getElementById("area").value;
-const address=document.getElementById("addressAdmin").value;
-const time=document.getElementById("time").value;
-const vacancies=document.getElementById("vacancies").value;
-const lat=parseFloat(document.getElementById("lat").value);
-const lng=parseFloat(document.getElementById("lng").value);
-await fetch("http://localhost:5000/admin/add-job",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({title,area,address,time,vacancies,lat,lng})});
-alert("Job Added");e.target.reset();
-});
-
-// Map
-const map = L.map('map').setView([11.0168,76.9558],12);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
-
-// Applicant OTP Login
-window.recaptchaVerifier=new RecaptchaVerifier('sendOTP',{size:"invisible"},auth);
-document.getElementById("sendOTP").addEventListener("click",()=>{
-const phone=document.getElementById("appPhone").value;
-signInWithPhoneNumber(auth,phone,window.recaptchaVerifier).then(confirmationResult=>{
-window.confirmationResult=confirmationResult;alert("OTP sent!");}).catch(err=>console.error(err));
-});
-document.getElementById("verifyOTP").addEventListener("click",()=>{
-const code=document.getElementById("otpInput").value;
-window.confirmationResult.confirm(code).then(result=>{
-alert("Phone verified!");document.getElementById("jobForm").style.display="block";document.getElementById("appLoginForm").style.display="none";}).catch(err=>alert("Invalid OTP"));
-});
-
-// Submit Applicant Form
-document.getElementById("jobForm").addEventListener("submit",async(e)=>{
-e.preventDefault();
-const name=document.getElementById("name").value;
-const position=document.getElementById("position").value;
-const worktime=document.querySelector('input[name="worktime"]:checked')?.value;
-const message=document.getElementById("message").value;
-await fetch("http://localhost:5000/applicant/submit",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name,phone:document.getElementById("appPhone").value,position,worktime,message})});
-alert("Application submitted!");
-
-// Load Jobs
-const output=document.getElementById("output");
-output.style.display="block";output.innerHTML="<h3>Available Jobs</h3><div id='jobList'>Loading...</div>";
-const res=await fetch("http://localhost:5000/jobs");
-const jobs=await res.json();
-let html="";jobs.forEach(job=>{
-html+=`<p><strong>${job.title}</strong> (${job.time})<br/>Vacancies: ${job.vacancies}<br/>Location: (${job.location.lat},${job.location.lng})</p>`;
-L.marker([job.location.lat,job.location.lng]).addTo(map).bindPopup(`<b>${job.title}</b><br>Vacancies: ${job.vacancies}`);
-});
-document.getElementById("jobList").innerHTML=html;
-e.target.reset();
-});
-</script>
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+  // Firebase Config
+ const firebaseConfig = {
+  apiKey: "AIzaSyC4wcIagcPYJr76tEczcjvFNJYiEBqoNKE",
+  authDomain: "zerodayz-8564a.firebaseapp.com",
+  projectId: "zerodayz-8564a",
+  storageBucket: "zerodayz-8564a.firebasestorage.app",
+  messagingSenderId: "462027652887",
+  appId: "1:462027652887:web:a857d0b39101e80826c152",
+  measurementId: "G-FZT3F6C1HB"
+};
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  // Initialize Map
+  const map = L.map('map').setView([11.0168,76.9558],12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'&copy; OpenStreetMap contributors'}).addTo(map);
+
+  // Add Job Vacancy
+  document.getElementById("vacancyForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    const jobData = {
+      title: document.getElementById("title").value,
+      area: document.getElementById("area").value,
+      address: document.getElementById("addressAdmin").value,
+      time: document.getElementById("time").value,
+      vacancies: parseInt(document.getElementById("vacancies").value),
+      location: {
+        lat: parseFloat(document.getElementById("lat").value),
+        lng: parseFloat(document.getElementById("lng").value)
+      }
+    };
+    await db.collection("jobs").add(jobData);
+    alert("Job Added!");
+    e.target.reset();
+    loadJobs();
+  });
+
+  // Applicant Form
+  document.getElementById("jobForm").addEventListener("submit", async e => {
+    e.preventDefault();
+    const appData = {
+      name: document.getElementById("name").value,
+      position: document.getElementById("position").value,
+      worktime: document.querySelector('input[name="worktime"]:checked')?.value,
+      message: document.getElementById("message").value
+    };
+    await db.collection("applications").add(appData);
+    alert("Application Submitted!");
+    e.target.reset();
+    loadJobs();
+  });
+
+  // Load Jobs
+  async function loadJobs(){
+    const output=document.getElementById("output");
+    output.style.display="block";
+    const snapshot = await db.collection("jobs").get();
+    let html = "<h3>Available Jobs</h3>";
+    snapshot.forEach(doc => {
+      const job = doc.data();
+      html += `<p><strong>${job.title}</strong> (${job.time})<br/>Vacancies: ${job.vacancies}<br/>Location: (${job.location.lat},${job.location.lng})</p>`;
+      L.marker([job.location.lat,job.location.lng]).addTo(map).bindPopup(`<b>${job.title}</b><br>Vacancies: ${job.vacancies}`);
+    });
+    output.innerHTML = html;
+  }
+
+  loadJobs();
+</script>
+
 </body>
 </html>
